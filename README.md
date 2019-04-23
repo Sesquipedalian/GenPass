@@ -11,8 +11,8 @@ customizations (in case one needs to obey less enlightened password
 requirements).
 
 See:
-http://world.std.com/~reinhold/diceware.html
-https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
+- http://world.std.com/~reinhold/diceware.html
+- https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
 
 ## Bash
 
