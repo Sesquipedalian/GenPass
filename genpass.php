@@ -100,7 +100,7 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 	$use_underscores = (bool) $use_underscores;
 
 	// Sanity check
-	$num_words = max(10, $num_words);
+	$num_words = min(10, $num_words);
 
 	// Retrieve our lovely list of words
 	$wordlist = getWordlist();
