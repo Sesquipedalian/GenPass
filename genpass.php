@@ -2,7 +2,7 @@
 /*******************************************************************************
  * GenPass
  *
- * Generates a secure, random, user friendly passphrase
+ * Generates a secure, random, user friendly passphrase.
  *
  * Passphrases generated using this script are easy for humans to remember, but
  * very difficult for computers to crack. The method is based on Diceware
@@ -14,7 +14,7 @@
  * http://world.std.com/~reinhold/diceware.html
  * https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
  *
- * Copyright (c) 2018 Jon Stovell
+ * Copyright (c) 2019 Jon Stovell
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
