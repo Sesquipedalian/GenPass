@@ -38,7 +38,7 @@
 
 usage() {
 cat 1>&2 << EOF
-usage: $(basename "$0") [-h] [-c] [-n] [-p] [-r] [-u] [-w <number>] [-m <number>]
+usage: $(basename "$0") [-h] [-c] [-n] [-p] [-u] [-w <number>] [-m <number>]
 
 Generates a secure, random, user friendly passphrase
 
@@ -56,7 +56,6 @@ OPTIONS:
    -c        Use capital letters
    -n        Use numbers
    -p        Use punctuation marks
-   -r        Use rare words (usually unnecessary)
    -u        Use underscores instead of spaces
    -w <num>  Number of words in the generated passphrase (range 3-10, default 5)
    -m <num>  How many passphrases to generate (default 1)
@@ -71,18 +70,16 @@ useUnderscores=false
 usePunct=false
 useNumber=false
 useCaps=false
-rareWords=false
 howMany=1
 ####################
 
-while getopts ":hcpnruw:m:" OPTION
+while getopts ":hcpnuw:m:" OPTION
 do
 	case $OPTION in
 		h) usage; exit ;;
 		c) useCaps=true ;;
 		p) usePunct=true ;;
 		n) useNumber=true ;;
-		r) rareWords=true ;;
 		u) useUnderscores=true ;;
 		w) numWords=$OPTARG ;;
 		m) howMany=$OPTARG ;;
@@ -196,25 +193,8 @@ getRandomInt() {
 }
 
 getDictionary() {
-	# Only use the standard dictionary if we can and if we really, really want to
-	if [[ $rareWords == true ]]; then
-		dictionary="/usr/share/dict/words"
+	dictionary="$(mktemp -t eff_wordlist.XXXXXX)"
 
-		if [[ ! -f "$dictionary" ]]; then
-			echo "Option -r requires $dictionary to exist, but it was not found." 1>&2
-			echo "Using standard word list." 1>&2
-			dictionary=""
-		fi
-	fi
-
-	if [[ -z "$dictionary" ]]; then
-		dictionary="$(mktemp -t eff_wordlist.XXXXXX)"
-		makeDictionary
-	fi
-
-}
-
-makeDictionary() {
 	# This is the EFF's long wordlist for random passphrases
 	# https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
 	wordlist='abacus abdomen abdominal abide abiding ability ablaze able
