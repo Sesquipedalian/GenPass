@@ -36,6 +36,101 @@
  ******************************************************************************/
 
 /**
+ * The code inside this IF block will only be executed when this file is run
+ * directly from the command line. If this file is included by another file,
+ * the code in this block will be ignored.
+ */
+if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($argv[0])) {
+
+	// Defaults
+	$how_many = 1;
+	$num_words = 5;
+	$use_number = false;
+	$use_punct = false;
+	$use_caps = false;
+	$glue = ' ';
+	$help = false;
+
+	foreach (getopt('hcnpw:m:dut:') as $optkey => $optval) {
+		switch ($optkey) {
+			case 'h':
+				$help = true;
+				break;
+
+			case 'c':
+				$use_caps = true;
+				break;
+
+			case 'n':
+				$use_number = true;
+				break;
+
+			case 'p':
+				$use_punct = true;
+				break;
+
+			case 'w':
+				$num_words = (int) $optval >= 3 ? (int) $optval : 5;
+				break;
+
+			case 'm':
+				$how_many = max(1, (int) $optval);
+				break;
+
+			case 'd':
+				$glue = '-';
+				break;
+
+			case 'u':
+				$glue = '_';
+				break;
+
+			case 't':
+				$glue = (string) $optval;
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	if (!$help)
+		for ($i=0; $i < $how_many; $i++) {
+			echo generatePassphrase($num_words, $use_number, $use_punct, $use_caps, $glue), PHP_EOL;
+		}
+	else
+		fwrite(STDERR, 'Usage: php ' . basename($argv[0]) . ' [-h] [-c] [-n] [-p] [-w <num>] [-m <num>]
+                          [-d|u] [-t <char>]
+
+Generates a secure, random, user friendly passphrase
+
+Passphrases generated using this script are easy for humans to remember, but
+very difficult for computers to crack. The method is based on Diceware
+passphrases, but uses improved wordlists from the EFF and allows customizations
+(in case one needs to obey less enlightened password requirements).
+
+See:
+http://world.std.com/~reinhold/diceware.html
+https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
+
+OPTIONS:
+   -h           Show this help message
+   -c           Use capital letters
+   -n           Use numbers
+   -p           Use punctuation marks
+   -w <number>  Number of words in the passphrase (range: 3-10, default: 5)
+   -m <number>  How many passphrases to generate (default: 1)
+   -d           Use dashes instead of spaces between words
+   -u           Use underscores instead of spaces between words
+   -t <string>  Custom text to use between words (default: " ")
+
+The -d, -u, and -t options are mutually exclusive. The script will use
+whichever one is given last.
+
+' . PHP_EOL);
+}
+
+/**
  * Generates a Diceware-style passphrase.
  *
  * The passphrase can be customized to meet various common password requirements if necessary.
@@ -1417,96 +1512,4 @@ function getWordlist() {
 		'zigzagged', 'zipfile', 'zipping', 'zippy', 'zips', 'zit', 'zodiac',
 		'zombie', 'zone', 'zoning', 'zookeeper', 'zoologist', 'zoology', 'zoom'
 	);
-}
-
-
-// Is this being run from the command line and not included in another script?
-if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($argv[0])) {
-
-	// Defaults
-	$how_many = 1;
-	$num_words = 5;
-	$use_number = false;
-	$use_punct = false;
-	$use_caps = false;
-	$glue = ' ';
-	$help = false;
-
-	foreach (getopt('hcnpw:m:dut:') as $optkey => $optval) {
-		switch ($optkey) {
-			case 'h':
-				$help = true;
-				break;
-
-			case 'c':
-				$use_caps = true;
-				break;
-
-			case 'n':
-				$use_number = true;
-				break;
-
-			case 'p':
-				$use_punct = true;
-				break;
-
-			case 'w':
-				$num_words = (int) $optval >= 3 ? (int) $optval : 5;
-				break;
-
-			case 'm':
-				$how_many = max(1, (int) $optval);
-				break;
-
-			case 'd':
-				$glue = '-';
-				break;
-
-			case 'u':
-				$glue = '_';
-				break;
-
-			case 't':
-				$glue = (string) $optval;
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	if (!$help)
-		for ($i=0; $i < $how_many; $i++) {
-			echo generatePassphrase($num_words, $use_number, $use_punct, $use_caps, $glue), PHP_EOL;
-		}
-	else
-		fwrite(STDERR, 'Usage: php ' . basename($argv[0]) . ' [-h] [-c] [-n] [-p] [-w <num>] [-m <num>]
-                          [-d|u] [-t <char>]
-
-Generates a secure, random, user friendly passphrase
-
-Passphrases generated using this script are easy for humans to remember, but
-very difficult for computers to crack. The method is based on Diceware
-passphrases, but uses improved wordlists from the EFF and allows customizations
-(in case one needs to obey less enlightened password requirements).
-
-See:
-http://world.std.com/~reinhold/diceware.html
-https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
-
-OPTIONS:
-   -h           Show this help message
-   -c           Use capital letters
-   -n           Use numbers
-   -p           Use punctuation marks
-   -w <number>  Number of words in the passphrase (range: 3-10, default: 5)
-   -m <number>  How many passphrases to generate (default: 1)
-   -d           Use dashes instead of spaces between words
-   -u           Use underscores instead of spaces between words
-   -t <string>  Custom text to use between words (default: " ")
-
-The -d, -u, and -t options are mutually exclusive. The script will use
-whichever one is given last.
-
-' . PHP_EOL);
 }
