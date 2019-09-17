@@ -44,10 +44,10 @@
  * @param bool $use_number If true, one word will be replaced with a random number (1-1000). Default false.
  * @param bool $use_punct If true, the passphrase will include punctuation marks. Default false.
  * @param bool $use_caps If true, at least one word will be capitalized. Default false.
- * @param bool $use_underscores If true, words will be separated by underscores instead of spaces. Default false.
+ * @param string $glue The string used to implode the words into a passphrase. Default ' '.
  * @return string The generated passphrase.
  */
-function generatePassphrase($num_words = 5, $use_number = false, $use_punct = false, $use_caps = false, $use_underscores = false) {
+function generatePassphrase($num_words = 5, $use_number = false, $use_punct = false, $use_caps = false, $glue = ' ') {
 
 	// What random number generator shall we use?
 	// Note: mt_rand is inadequate for cryptography purposes
@@ -97,7 +97,7 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 	$use_punct = (bool) $use_punct;
 	$use_number = (bool) $use_number;
 	$use_caps = (bool) $use_caps;
-	$use_underscores = (bool) $use_underscores;
+	$glue = (string) $glue;
 
 	// Sanity check
 	$num_words = min(10, $num_words);
@@ -143,11 +143,11 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 		++$i;
 	}
 
-	$passphrase = implode(($use_underscores ? '_' : ' '), $passphrase);
+	$passphrase = implode($glue, $passphrase);
 
 	// It's annoying to have an underscore immediately after a punctuation mark
-	if ($use_underscores && $use_punct)
-		$passphrase = preg_replace('/(?<=[' . implode('', $punctuation) . '])_/', '', $passphrase);
+	if ($use_punct && $glue !== ' ' && strlen($glue) === 1 && preg_match('/\pP/', $glue))
+		$passphrase = preg_replace('/(?<=[' . implode('', $punctuation) . '])' . $glue . '/', '', $passphrase);
 
 	return $passphrase;
 }
@@ -1423,25 +1423,65 @@ function getWordlist() {
 // Is this being run from the command line and not included in another script?
 if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($argv[0])) {
 
-	$opts = getopt('hcnpuw:m:');
+	// Defaults
+	$how_many = 1;
+	$num_words = 5;
+	$use_number = false;
+	$use_punct = false;
+	$use_caps = false;
+	$glue = ' ';
+	$help = false;
 
-	$how_many = (isset($opts['m']) && (int) $opts['m'] >= 1) ? (int) $opts['m'] : 1;
-	$num_words = (isset($opts['w']) && (int) $opts['w'] >= 3) ? (int) $opts['w'] : 5;
-	$use_number = isset($opts['n']);
-	$use_punct = isset($opts['p']);
-	$use_caps = isset($opts['c']);
-	$use_underscores = isset($opts['u']);
-	$help = isset($opts['h']);
+	foreach (getopt('hcnpw:m:dut:') as $optkey => $optval) {
+		switch ($optkey) {
+			case 'h':
+				$help = true;
+				break;
 
-	unset($opts);
+			case 'c':
+				$use_caps = true;
+				break;
+
+			case 'n':
+				$use_number = true;
+				break;
+
+			case 'p':
+				$use_punct = true;
+				break;
+
+			case 'w':
+				$num_words = (int) $optval >= 3 ? (int) $optval : 5;
+				break;
+
+			case 'm':
+				$how_many = max(1, (int) $optval);
+				break;
+
+			case 'd':
+				$glue = '-';
+				break;
+
+			case 'u':
+				$glue = '_';
+				break;
+
+			case 't':
+				$glue = (string) $optval;
+				break;
+
+			default:
+				break;
+		}
+	}
 
 	if (!$help)
 		for ($i=0; $i < $how_many; $i++) {
-			// echo generatePassphrase($num_words, $use_number, $use_punct, $use_caps, $use_underscores), PHP_EOL;
-			echo generatePassphrase(5, true, true, true, false), PHP_EOL;
+			echo generatePassphrase($num_words, $use_number, $use_punct, $use_caps, $glue), PHP_EOL;
 		}
 	else
-		fwrite(STDERR, 'Usage: php ' . basename($argv[0]) . ' [-h] [-c] [-n] [-p] [-u] [-w <number>] [-m <number>]
+		fwrite(STDERR, 'Usage: php ' . basename($argv[0]) . ' [-h] [-c] [-n] [-p] [-w <num>] [-m <num>]
+                          [-d|u] [-t <char>]
 
 Generates a secure, random, user friendly passphrase
 
@@ -1455,13 +1495,18 @@ http://world.std.com/~reinhold/diceware.html
 https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
 
 OPTIONS:
-   -h        Show this help message
-   -c        Use capital letters
-   -n        Use numbers
-   -p        Use punctuation marks
-   -u        Use underscores instead of spaces
-   -w <num>  Number of words in the generated passphrase (range 3-10, default 5)
-   -m <num>  How many passphrases to generate (default 1)
+   -h           Show this help message
+   -c           Use capital letters
+   -n           Use numbers
+   -p           Use punctuation marks
+   -w <number>  Number of words in the passphrase (range: 3-10, default: 5)
+   -m <number>  How many passphrases to generate (default: 1)
+   -d           Use dashes instead of spaces between words
+   -u           Use underscores instead of spaces between words
+   -t <string>  Custom text to use between words (default: " ")
+
+The -d, -u, and -t options are mutually exclusive. The script will use
+whichever one is given last.
 
 ' . PHP_EOL);
 }

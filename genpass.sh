@@ -38,7 +38,8 @@
 
 usage() {
 cat 1>&2 << EOF
-usage: $(basename "$0") [-h] [-c] [-n] [-p] [-u] [-w <number>] [-m <number>]
+usage: $(basename "$0") [-h] [-c] [-n] [-p] [-w number] [-m number]
+                   [-d|u] [-t string]
 
 Generates a secure, random, user friendly passphrase
 
@@ -52,13 +53,18 @@ http://world.std.com/~reinhold/diceware.html
 https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
 
 OPTIONS:
-   -h        Show this help message
-   -c        Use capital letters
-   -n        Use numbers
-   -p        Use punctuation marks
-   -u        Use underscores instead of spaces
-   -w <num>  Number of words in the generated passphrase (range 3-10, default 5)
-   -m <num>  How many passphrases to generate (default 1)
+   -h           Show this help message
+   -c           Use capital letters
+   -n           Use numbers
+   -p           Use punctuation marks
+   -w <number>  Number of words in the passphrase (range: 3-10, default: 5)
+   -m <number>  How many passphrases to generate (default: 1)
+   -d           Use dashes instead of spaces between words
+   -u           Use underscores instead of spaces between words
+   -t <string>  Custom text to use between words (default: " ")
+
+The -d, -u, and -t options are mutually exclusive. The script will use
+whichever one is given last.
 
 EOF
 }
@@ -66,24 +72,26 @@ EOF
 ####################
 # Default settings
 numWords=5
-useUnderscores=false
+glue=' '
 usePunct=false
 useNumber=false
 useCaps=false
 howMany=1
 ####################
 
-while getopts ":hcpnuw:m:" OPTION
+while getopts ":hcpnw:m:dut:" OPTION
 do
 	case $OPTION in
 		h) usage; exit ;;
 		c) useCaps=true ;;
 		p) usePunct=true ;;
 		n) useNumber=true ;;
-		u) useUnderscores=true ;;
 		w) numWords=$OPTARG ;;
 		m) howMany=$OPTARG ;;
-		*) echo "Illegal option: $OPTARG" 1>&2; usage; exit ;;
+		d) glue="-" ;;
+		u) glue="_" ;;
+		t) glue="$OPTARG" ;;
+		*) echo "Illegal option: $OPTION" 1>&2; usage; exit ;;
 	esac
 done
 shift $(( ${OPTIND} - 1 ))
@@ -123,6 +131,13 @@ main() {
 
 	$useNumber && (( numWords++ ))
 
+	# It's annoying to have an underscore immediately after a punctuation mark
+	if [[ $glue != ' ' && ${#glue} -eq 1 && $glue =~ [[:punct:]] ]]; then
+		glue_after_punct=''
+	else
+		glue_after_punct="$glue"
+	fi
+
 	for (( j = 0; j < $howMany; j++ )); do
 
 		# Where should be the number be inserted, if anywhere?
@@ -151,19 +166,15 @@ main() {
 			fi
 
 			# Maybe append a punctuation mark?
-			if [[ $usePunct == true && ($i == $(( $numWords - 1 )) || $i -gt $(( $punctPosition + $(getRandomInt 1 2) ))) ]]; then
+			if [[ $usePunct == true && ($i -eq $(( $numWords - 1 )) || $i -gt $(( $punctPosition + $(getRandomInt 1 2) ))) ]]; then
 				punctNum=$(getRandomInt 0 $(( ${#punctuation[@]} - 1 )))
 				word+="${punctuation[${punctNum}]}"
-				[[ $useUnderscores == false ]] && word+=' '
 				punctPosition=$i
+				[[ $i -ne $(( $numWords - 1 )) ]] && word+="$glue_after_punct"
 
-			# Otherwise append a space or an underscore, unless we are at the end of the passphrase
+			# Otherwise append the glue, unless we are at the end of the passphrase
 			elif [[ $i != $(($numWords - 1)) ]]; then
-				if [[ $useUnderscores == true ]]; then
-					word+='_'
-				else
-					word+=' '
-				fi
+				word+="$glue"
 			fi
 
 			passphrase+="$word"
