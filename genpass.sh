@@ -129,17 +129,9 @@ main() {
 		# Where should be the number be inserted, if anywhere?
 		[[ $useNumber == true ]] && numberPosition=$(getRandomInt 0 $numWords)
 
-		# If they want punctuation, ensure we append it to at least one word
-		[[ $usePunct == true ]] && punctPosition=$(getRandomInt 0 $numWords)
-
-		# If they want capitals, ensure we capitalize at least one word (and not the number)
-		capsPosition=$(getRandomInt 0 $numWords)
-		while [[ $capsPosition -eq $numberPosition ]]; do
-			capsPosition=$(getRandomInt 0 $numWords)
-		done
-
 		# Let's do this thing...
 		passphrase=''
+		punctPosition=-1
 		for (( i = 0; i < $numWords; i++ )); do
 			# Do we want a word or a number?
 			if [[ $i == $numberPosition ]]; then
@@ -149,16 +141,17 @@ main() {
 				word=$(sed "${wordNum}q;d" $dictionary)
 
 				# Capitalize the first letter of this word?
-				if [[ $useCaps == true && ($i == $capsPosition || $(getRandomInt 0 $numWords) == 0) ]]; then
+				if [[ $useCaps == true && $i -eq $(( $punctPosition + 1 )) ]]; then
 					word="$(tr '[:lower:]' '[:upper:]' <<< ${word:0:1})${word:1}"
 				fi
 			fi
 
 			# Maybe append a punctuation mark?
-			if [[ $usePunct == true && ($i == $punctPosition || $(( $RANDOM % 3 )) == 0) ]]; then
-				punctNum=$(getRandomInt 0 $((${#punctuation[@]} - 1)))
+			if [[ $usePunct == true && ($i == $(( $numWords - 1 )) || $i -gt $(( $punctPosition + $(getRandomInt 1 2) ))) ]]; then
+				punctNum=$(getRandomInt 0 $(( ${#punctuation[@]} - 1 )))
 				word+="${punctuation[${punctNum}]}"
 				[[ $useUnderscores == false ]] && word+=' '
+				punctPosition=$i
 
 			# Otherwise append a space or an underscore, unless we are at the end of the passphrase
 			elif [[ $i != $(($numWords - 1)) ]]; then

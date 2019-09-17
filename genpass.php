@@ -111,19 +111,10 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 	// Where should be the number be inserted, if anywhere?
 	$numberPosition = $use_number ? $random_int(0, $num_words - 1) : null;
 
-	// If they want punctuation, ensure we append it to at least one word
-	$punctPosition = $use_punct ? $random_int(0, $num_words - 1) : null;
-
-	// If they want capitals, ensure we capitalize at least one word (and not the number)
-	$capsPosition = null;
-	if ($use_caps) {
-		while (!isset($capsPosition) || $capsPosition === $numberPosition)
-			$capsPosition = $random_int(0, $num_words - 1);
-	}
-
 	// Let's do this thing...
 	$passphrase = array();
 	$i = 0;
+	$punct_position = -1;
 	while ($i < $num_words) {
 		// Do we want a word or a number?
 		if ($i === $numberPosition)
@@ -132,13 +123,15 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 			$word = $wordlist[$random_int(0, count($wordlist) - 1)];
 
 			// Capitalize the first letter of this word?
-			if ($use_caps && ($i === $capsPosition || $random_int(0, $num_words - 1) === 0))
+			if ($use_caps && ($i === $punct_position + 1))
 				$word = ucfirst($word);
 		}
 
 		// Maybe append a punctuation mark?
-		if ($use_punct && ($i === $punctPosition || $random_int(0, 3) === 0))
-			$word .= $punctuation[$random_int(0, count($punctuation) - 1)];
+		if ($use_punct && ($i === $num_words - 1 || $i > $punct_position + mt_rand(1, 2))) {
+			$word .= $punctuation[mt_rand(0, count($punctuation) - 1)];
+			$punct_position = $i;
+		}
 
 		$passphrase[] = $word;
 
@@ -1417,7 +1410,8 @@ function getWordlist() {
 		'yo-yo', 'yodel', 'yoga', 'yogurt', 'yonder', 'yoyo', 'yummy', 'zap',
 		'zealous', 'zebra', 'zen', 'zeppelin', 'zero', 'zestfully', 'zesty',
 		'zigzagged', 'zipfile', 'zipping', 'zippy', 'zips', 'zit', 'zodiac',
-		'zombie', 'zone', 'zoning', 'zookeeper', 'zoologist', 'zoology', 'zoom');
+		'zombie', 'zone', 'zoning', 'zookeeper', 'zoologist', 'zoology', 'zoom'
+	);
 }
 
 
@@ -1438,7 +1432,8 @@ if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($argv[0])) {
 
 	if (!$help)
 		for ($i=0; $i < $how_many; $i++) {
-			echo generatePassphrase($num_words, $use_number, $use_punct, $use_caps, $use_underscores), PHP_EOL;
+			// echo generatePassphrase($num_words, $use_number, $use_punct, $use_caps, $use_underscores), PHP_EOL;
+			echo generatePassphrase(5, true, true, true, false), PHP_EOL;
 		}
 	else
 		fwrite(STDERR, 'Usage: php ' . basename($argv[0]) . ' [-h] [-c] [-n] [-p] [-u] [-w <number>] [-m <number>]
