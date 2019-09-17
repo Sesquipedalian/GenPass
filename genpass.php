@@ -121,7 +121,9 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 	while ($i < $num_words) {
 		// Do we want a word or a number?
 		if ($i === $numberPosition)
-			$word = $random_int(1, 1000);
+			// Just window dressing, so make it friendly.
+			// 50% chance of one digit, 50% chance of two digits.
+			$word = (mt_rand(0, 1) ? mt_rand(1, 9) : mt_rand(10, 99));
 		else {
 			$word = $wordlist[$random_int(0, count($wordlist) - 1)];
 

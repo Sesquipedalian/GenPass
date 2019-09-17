@@ -140,7 +140,9 @@ main() {
 		for (( i = 0; i < $numWords; i++ )); do
 			# Do we want a word or a number?
 			if [[ $i == $numberPosition ]]; then
-				word=$(getRandomInt 1 999)
+				# Just window dressing, so make it friendly.
+				# 50% chance of one digit, 50% chance of two digits.
+				[[ $(getRandomInt 0 1) -eq 1 ]] && word=$(getRandomInt 1 9) || word=$(getRandomInt 10 99)
 			else
 				wordNum=$(getRandomInt 0 $maxWordNum)
 				word=$(sed "${wordNum}q;d" $dictionary)
