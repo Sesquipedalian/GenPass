@@ -124,10 +124,15 @@ main() {
 	# A array of punctation marks we might add to a word
 	punctuation=('.' '?' '!')
 
+	$useNumber && (( numWords++ ))
+
 	for (( j = 0; j < $howMany; j++ )); do
 
 		# Where should be the number be inserted, if anywhere?
-		[[ $useNumber == true ]] && numberPosition=$(getRandomInt 0 $numWords)
+		if $useNumber; then
+			numberPosition=$(getRandomInt 1 $numWords)
+			(( numberPosition-- ))
+		fi
 
 		# Let's do this thing...
 		passphrase=''

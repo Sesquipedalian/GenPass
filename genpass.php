@@ -109,7 +109,10 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 	$punctuation = array('.', '?', '!');
 
 	// Where should be the number be inserted, if anywhere?
-	$numberPosition = $use_number ? $random_int(0, $num_words - 1) : null;
+	if ($use_number) {
+		$numberPosition = mt_rand(0, $num_words);
+		$num_words++;
+	}
 
 	// Let's do this thing...
 	$passphrase = array();
