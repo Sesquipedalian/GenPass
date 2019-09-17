@@ -188,7 +188,7 @@ getRandomInt() {
 
 	# BSD and macOS
 	if [[ -e "$(which jot)" ]]; then
-		echo "$(jot -w %i -r 1 $min $max)";
+		echo "$(jot -r 1 $min $max)";
 	# Linux
 	elif [[ -e "$(which shuf)" ]]; then
 		echo "$(shuf -n1 -i${min}-${max} --random-source=/dev/urandom)"
