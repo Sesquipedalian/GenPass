@@ -49,7 +49,7 @@ Kiwi theorize creatable? Barbed?
 
 ```
 $ ./genpass.sh -n -t '_'
-6_persuader_pledge?vice_those_smashing?
+universe_reappear_76_bash_entree_trapping
 ```
 
 ## PHP
