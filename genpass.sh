@@ -71,23 +71,23 @@ EOF
 
 ####################
 # Default settings
-numWords=5
+use_caps=false
+use_punct=false
+use_number=false
+num_words=5
+how_many=1
 glue=' '
-usePunct=false
-useNumber=false
-useCaps=false
-howMany=1
 ####################
 
-while getopts ":hcpnw:m:dut:" OPTION
+while getopts ":hncpw:m:dut:" OPTION
 do
 	case $OPTION in
 		h) usage; exit ;;
-		c) useCaps=true ;;
-		p) usePunct=true ;;
-		n) useNumber=true ;;
-		w) numWords=$OPTARG ;;
-		m) howMany=$OPTARG ;;
+		n) use_number=true ;;
+		c) use_caps=true ;;
+		p) use_punct=true ;;
+		w) num_words=$OPTARG ;;
+		m) how_many=$OPTARG ;;
 		d) glue="-" ;;
 		u) glue="_" ;;
 		t) glue="$OPTARG" ;;
@@ -96,22 +96,16 @@ do
 done
 shift $(( ${OPTIND} - 1 ))
 
-if ! [ "$numWords" -ge 3 ] 2>/dev/null; then
-	echo "Option -w requires an integer argument (minimum 3)" 1>&2
+if [[ "$num_words" -lt 3 || "$num_words" -gt 10 ]]; then
+	echo "Option -w requires an integer argument in the range 3 to 10" 1>&2
 	echo "Using default value of 5" 1>&2
-	numWords=5
+	num_words=5
 fi
 
-if [ "$numWords" -gt 10 ] 2>/dev/null; then
-	echo "Option -w has a maximum value of 10" 1>&2
-	echo "Using maximum value of 10" 1>&2
-	numWords=10
-fi
-
-if ! [ "$howMany" -gt 0 ] 2>/dev/null; then
+if [[ "$how_many" -lt 1 ]]; then
 	echo "Option -m requires an integer argument (minimum 1)" 1>&2
 	echo "Using default value of 1" 1>&2
-	howMany=1
+	how_many=1
 fi
 
 if [[ ! -e "$(which jot)" && ! -e "$(which shuf)" ]]; then
@@ -123,13 +117,13 @@ main() {
 	getDictionary
 
 	# xargs tidies whitespace so cut doesn't get confused
-	maxWordNum=$(wc -l $dictionary | xargs | cut -d' ' -f1)
-	maxWordNum=$(( $maxWordNum - 1 ))
+	max_word_num=$(wc -l $dictionary | xargs | cut -d' ' -f1)
+	max_word_num=$(( $max_word_num - 1 ))
 
 	# A array of punctation marks we might add to a word
 	punctuation=('.' '?' '!')
 
-	$useNumber && (( numWords++ ))
+	$use_number && (( num_words++ ))
 
 	# It's annoying to have an underscore immediately after a punctuation mark
 	if [[ $glue != ' ' && ${#glue} -eq 1 && $glue =~ [[:punct:]] ]]; then
@@ -138,42 +132,42 @@ main() {
 		glue_after_punct="$glue"
 	fi
 
-	for (( j = 0; j < $howMany; j++ )); do
+	for (( j = 0; j < $how_many; j++ )); do
 
 		# Where should be the number be inserted, if anywhere?
-		if $useNumber; then
-			numberPosition=$(getRandomInt 1 $numWords)
-			(( numberPosition-- ))
+		if $use_number; then
+			number_position=$(getRandomInt 1 $num_words)
+			(( number_position-- ))
 		fi
 
 		# Let's do this thing...
 		passphrase=''
-		punctPosition=-1
-		for (( i = 0; i < $numWords; i++ )); do
+		punct_position=-1
+		for (( i = 0; i < $num_words; i++ )); do
 			# Do we want a word or a number?
-			if [[ $i == $numberPosition ]]; then
+			if [[ $i == $number_position ]]; then
 				# Just window dressing, so make it friendly.
 				# 50% chance of one digit, 50% chance of two digits.
 				[[ $(getRandomInt 0 1) -eq 1 ]] && word=$(getRandomInt 1 9) || word=$(getRandomInt 10 99)
 			else
-				wordNum=$(getRandomInt 0 $maxWordNum)
-				word=$(sed "${wordNum}q;d" $dictionary)
+				word_num=$(getRandomInt 0 $max_word_num)
+				word=$(sed "${word_num}q;d" $dictionary)
 
 				# Capitalize the first letter of this word?
-				if [[ $useCaps == true && $i -eq $(( $punctPosition + 1 )) ]]; then
+				if [[ $use_caps == true && $i -eq $(( $punct_position + 1 )) ]]; then
 					word="$(tr '[:lower:]' '[:upper:]' <<< ${word:0:1})${word:1}"
 				fi
 			fi
 
 			# Maybe append a punctuation mark?
-			if [[ $usePunct == true && ($i -eq $(( $numWords - 1 )) || $i -gt $(( $punctPosition + $(getRandomInt 1 2) ))) ]]; then
-				punctNum=$(getRandomInt 0 $(( ${#punctuation[@]} - 1 )))
-				word+="${punctuation[${punctNum}]}"
-				punctPosition=$i
-				[[ $i -ne $(( $numWords - 1 )) ]] && word+="$glue_after_punct"
+			if [[ $use_punct == true && ($i -eq $(( $num_words - 1 )) || $i -gt $(( $punct_position + $(getRandomInt 1 2) ))) ]]; then
+				punct_num=$(getRandomInt 0 $(( ${#punctuation[@]} - 1 )))
+				word+="${punctuation[${punct_num}]}"
+				punct_position=$i
+				[[ $i -ne $(( $num_words - 1 )) ]] && word+="$glue_after_punct"
 
 			# Otherwise append the glue, unless we are at the end of the passphrase
-			elif [[ $i != $(($numWords - 1)) ]]; then
+			elif [[ $i != $(($num_words - 1)) ]]; then
 				word+="$glue"
 			fi
 
@@ -187,7 +181,7 @@ main() {
 
 	done
 
-	[[ $dictionary == *eff_wordlist* ]] && rm "$dictionary"
+	rm "$dictionary"
 }
 
 getRandomInt() {
