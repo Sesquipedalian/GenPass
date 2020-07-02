@@ -122,8 +122,8 @@ if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($argv[0])) {
 			'   -u           Use underscores instead of spaces between words',
 			'   -t <string>  Custom text to use between words (default: " ")',
 			'',
-			'The -d, -u, and -t options are mutually exclusive. The script will use',
-			'whichever one is given last.',
+			'The -d, -u, and -t options are mutually exclusive. The script will use whichever',
+			'one is given last.',
 			'',
 		)));
 
@@ -223,8 +223,9 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 	// Retrieve our lovely list of words
 	$wordlist = getWordlist();
 
-	// A array of punctation marks we might add to a word
-	$punctuation = array('.', '?', '!');
+	// Some punctation marks we might add to a word
+	$inner_punctuation = array('.', '?', ',');
+	$final_punctuation = array('.', '?', '!');
 
 	// Where should be the number be inserted, if anywhere?
 	if ($use_number) {
@@ -236,24 +237,39 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 	$passphrase = array();
 	$i = 0;
 	$punct_position = -1;
+	$cap_next = true;
 	while ($i < $num_words) {
 		// Do we want a word or a number?
-		if ($i === $number_position)
-			// Just window dressing, so make it friendly.
+		if ($i === $number_position) {
+			// A number is just window dressing, so make it friendly:
 			// 50% chance of one digit, 50% chance of two digits.
 			$word = (mt_rand(0, 1) ? mt_rand(1, 9) : mt_rand(10, 99));
+			$cap_next = false;
+		}
 		else {
 			$word = $wordlist[$random_int(0, count($wordlist) - 1)];
 
 			// Capitalize the first letter of this word?
-			if ($use_caps && ($i === $punct_position + 1))
+			if ($use_caps && $cap_next) {
 				$word = ucfirst($word);
+				$cap_next = false;
+			}
 		}
 
 		// Maybe append a punctuation mark?
-		if ($use_punct && ($i === $num_words - 1 || $i > $punct_position + mt_rand(1, 2))) {
-			$word .= $punctuation[mt_rand(0, count($punctuation) - 1)];
-			$punct_position = $i;
+		if ($use_punct) {
+			$punct = '';
+			if ($i === $num_words - 1) {
+				$punct = $final_punctuation[mt_rand(0, count($final_punctuation) - 1)];
+			}
+			elseif ($i > $punct_position + mt_rand(1, 2)) {
+				$punct = $inner_punctuation[mt_rand(0, count($inner_punctuation) - 1)];
+			}
+			if (!empty($punct)) {
+				$word .= $punct;
+				$punct_position = $i;
+				$cap_next = $punct !== ',';
+			}
 		}
 
 		$passphrase[] = $word;

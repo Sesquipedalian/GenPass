@@ -63,8 +63,8 @@ OPTIONS:
    -u           Use underscores instead of spaces between words
    -t <string>  Custom text to use between words (default: " ")
 
-The -d, -u, and -t options are mutually exclusive. The script will use
-whichever one is given last.
+The -d, -u, and -t options are mutually exclusive. The script will use whichever
+one is given last.
 
 EOF
 }
@@ -120,8 +120,9 @@ main() {
 	max_word_num=$(wc -l $dictionary | xargs | cut -d' ' -f1)
 	max_word_num=$(( $max_word_num - 1 ))
 
-	# A array of punctation marks we might add to a word
-	punctuation=('.' '?' '!')
+	# Some punctation marks we might add to a word
+	inner_punctuation=('.' '?' ',')
+	final_punctuation=('.' '?' '!')
 
 	$use_number && (( num_words++ ))
 
@@ -143,27 +144,40 @@ main() {
 		# Let's do this thing...
 		passphrase=''
 		punct_position=-1
+		cap_next=true
 		for (( i = 0; i < $num_words; i++ )); do
 			# Do we want a word or a number?
 			if [[ $i == $number_position ]]; then
-				# Just window dressing, so make it friendly.
+				# A number is just window dressing, so make it friendly:
 				# 50% chance of one digit, 50% chance of two digits.
 				[[ $(getRandomInt 0 1) -eq 1 ]] && word=$(getRandomInt 1 9) || word=$(getRandomInt 10 99)
+				cap_next=false
 			else
 				word_num=$(getRandomInt 0 $max_word_num)
 				word=$(sed "${word_num}q;d" $dictionary)
 
 				# Capitalize the first letter of this word?
-				if [[ $use_caps == true && $i -eq $(( $punct_position + 1 )) ]]; then
+				if $use_caps && $cap_next; then
 					word="$(tr '[:lower:]' '[:upper:]' <<< ${word:0:1})${word:1}"
+					cap_next=false
 				fi
 			fi
 
 			# Maybe append a punctuation mark?
-			if [[ $use_punct == true && ($i -eq $(( $num_words - 1 )) || $i -gt $(( $punct_position + $(getRandomInt 1 2) ))) ]]; then
-				punct_num=$(getRandomInt 0 $(( ${#punctuation[@]} - 1 )))
-				word+="${punctuation[${punct_num}]}"
-				punct_position=$i
+			if [[ $use_punct == true ]]; then
+				punct=''
+				if [[ $i -eq $(( $num_words - 1 )) ]]; then
+					punct_num=$(getRandomInt 0 $(( ${#final_punctuation[@]} - 1 )))
+					punct="${final_punctuation[${punct_num}]}"
+				elif [[ $i -gt $(( $punct_position + $(getRandomInt 1 2) )) ]]; then
+					punct_num=$(getRandomInt 0 $(( ${#inner_punctuation[@]} - 1 )))
+					punct="${inner_punctuation[${punct_num}]}"
+				fi
+				if [[ "$punct" != '' ]]; then
+					word+="$punct"
+					punct_position=$i
+					[[ "$punct" != ',' ]] && cap_next=true || cap_next=false
+				fi
 				[[ $i -ne $(( $num_words - 1 )) ]] && word+="$glue_after_punct"
 
 			# Otherwise append the glue, unless we are at the end of the passphrase
