@@ -240,7 +240,7 @@ function generatePassphrase($num_words = 5, $use_number = false, $use_punct = fa
 	$cap_next = true;
 	while ($i < $num_words) {
 		// Do we want a word or a number?
-		if ($i === $number_position) {
+		if ($use_number && $i === $number_position) {
 			// A number is just window dressing, so make it friendly:
 			// 50% chance of one digit, 50% chance of two digits.
 			$word = (mt_rand(0, 1) ? mt_rand(1, 9) : mt_rand(10, 99));
