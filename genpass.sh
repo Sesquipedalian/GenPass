@@ -166,6 +166,7 @@ main() {
 			# Maybe append a punctuation mark?
 			if [[ $use_punct == true ]]; then
 				punct=''
+
 				if [[ $i -eq $(( $num_words - 1 )) ]]; then
 					punct_num=$(getRandomInt 0 $(( ${#final_punctuation[@]} - 1 )))
 					punct="${final_punctuation[${punct_num}]}"
@@ -173,12 +174,15 @@ main() {
 					punct_num=$(getRandomInt 0 $(( ${#inner_punctuation[@]} - 1 )))
 					punct="${inner_punctuation[${punct_num}]}"
 				fi
+
 				if [[ "$punct" != '' ]]; then
 					word+="$punct"
 					punct_position=$i
 					[[ "$punct" != ',' ]] && cap_next=true || cap_next=false
+					[[ $i -ne $(( $num_words - 1 )) ]] && word+="$glue_after_punct"
+				else
+					[[ $i -ne $(( $num_words - 1 )) ]] && word+="$glue"
 				fi
-				[[ $i -ne $(( $num_words - 1 )) ]] && word+="$glue_after_punct"
 
 			# Otherwise append the glue, unless we are at the end of the passphrase
 			elif [[ $i != $(($num_words - 1)) ]]; then
