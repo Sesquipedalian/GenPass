@@ -1,18 +1,22 @@
 # GenPass
 
-Generates a secure, random, user friendly passphrase
+Generates secure, random, user-friendly passphrases.
 
 This repository contains two versions of GenPass, one in Bash, and one in PHP.
 
 Passphrases generated using GenPass are easy for humans to remember, but
 very difficult for computers to crack. The method is based on Diceware
 passphrases, but uses improved wordlists from the EFF and allows
-customizations (in case one needs to obey less enlightened password
-requirements).
+customizations in case one needs to obey less enlightened password
+requirements.
 
 See:
 - http://world.std.com/~reinhold/diceware.html
 - https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
+
+Users of languages other than English can replace the included wordlist with
+their own. A quick Internet search for "diceware word list *your_language_name*"
+should find options for your language.
 
 ## Bash
 
@@ -54,33 +58,59 @@ universe_reappear_76_bash_entree_trapping
 
 ## PHP
 
-To use GenPass in your PHP project, simply include genpass.php and then call the `generatePassphrase()` function.
+To use GenPass in your PHP project, simply include GenPass.php and then use it
+like so:
 
-### Parameters & return value for generatePassphrase()
+```php
+$genpass = new Sesquipedalian\GenPass();
+
+$one_passphrase  = $genpass->generate();
+$ten_passphrases = $genpass->generateBatch(10);
 ```
+
+GenPass.php contains code to enable command line usage (see below). If you are
+using GenPass in your PHP project, you will probably want to remove that code.
+
+### Parameters for Sesquipedalian\GenPass::__construct()
+```php
 /**
- * Generates a Diceware-style passphrase.
+ * Builds the passphrase generator.
  *
- * The passphrase can be customized to meet various common password requirements if necessary.
+ * The generator can be customized to meet various common password
+ * requirements if necessary.
  *
- * @param int $num_words The number of words to include in the generated passphrase. Min 3, max 10. Default 5.
- * @param bool $use_number If true, a random number will be added to the passphrase. Default false.
- * @param bool $use_punct If true, the passphrase will include punctuation marks. Default false.
- * @param bool $use_caps If true, at least one word will start with an uppercase letter. Default false.
- * @param string $glue The string used to implode the words into a passphrase. Default ' '.
- * @return string The generated passphrase.
+ * @param int $num_words The number of words to include in the passphrase.
+ *    Min: 3. Max: 10. Default: 5.
+ * @param bool $use_number If true, the passphrase will include a random
+ *    number (1-99). Default: false.
+ * @param bool $use_punct If true, the passphrase will include punctuation
+ *    marks. Default: false.
+ * @param bool $use_caps If true, at least one word will be capitalized.
+ *    Default: false.
+ * @param string $glue String used to implode the words into a passphrase.
+ *    Default: ' '.
  */
-function generatePassphrase($num_words = 5, $use_number = false, $use_punct = false, $use_caps = false, $glue = ' ') {
+public function __construct(
+   int $num_words = 5,
+   bool $use_number = false,
+   bool $use_punct = false,
+   bool $use_caps = false,
+   string $glue = ' ',
+) {
 	...
 }
 ```
 
+
 ### Command line usage
 
-The genpass.php file can also be used from the command line like so:
+The GenPass.php file can also be used from the command line like so:
 
 ```
-$ php genpass.php
+$ php GenPass.php
 ```
 
-The same command line options are available for the PHP version as for the Bash version, and have the same results. The only difference between running `./genpass.sh` vs. `php genpass.php` on the command line is that the PHP version is much, much faster.
+The same command line options are available for the PHP version as for the Bash
+version, and have the same results. The only difference between running
+`./genpass.sh` vs. `php GenPass.php` on the command line is that the PHP version
+is much, much faster.

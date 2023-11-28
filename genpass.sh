@@ -3,7 +3,7 @@
 ################################################################################
 # GenPass
 #
-# Generates a secure, random, user friendly passphrase.
+# Generates secure, random, user-friendly passphrases.
 #
 # Passphrases generated using this script are easy for humans to remember, but
 # very difficult for computers to crack. The method is based on Diceware
@@ -15,7 +15,7 @@
 # http://world.std.com/~reinhold/diceware.html
 # https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
 #
-# Copyright (c) 2019 Jon Stovell
+# Copyright (c) 2023 Jon Stovell
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -41,12 +41,12 @@ cat 1>&2 << EOF
 usage: $(basename "$0") [-h] [-c] [-n] [-p] [-w number] [-m number]
                    [-d|u] [-t string]
 
-Generates a secure, random, user friendly passphrase
+Generates secure, random, user-friendly passphrases.
 
 Passphrases generated using this script are easy for humans to remember, but
 very difficult for computers to crack. The method is based on Diceware
 passphrases, but uses improved wordlists from the EFF and allows customizations
-(in case one needs to obey less enlightened password requirements).
+in case one needs to obey less enlightened password requirements.
 
 See:
 http://world.std.com/~reinhold/diceware.html

@@ -1,20 +1,14 @@
 <?php
-/*******************************************************************************
- * GenPass
+
+/**
+ * Generates secure, random, user friendly passphrases.
  *
- * Generates a secure, random, user friendly passphrase.
+ * @version 1.1.0
+ * @author Jon Stovell http://jon.stovell.info
+ * @copyright 2023 Jon Stovell
+ * @license MIT
  *
- * Passphrases generated using this script are easy for humans to remember, but
- * very difficult for computers to crack. The method is based on Diceware
- * passphrases, but uses improved wordlists from the EFF and allows
- * customizations (in case one needs to obey less enlightened password
- * requirements).
- *
- * See:
- * http://world.std.com/~reinhold/diceware.html
- * https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
- *
- * Copyright (c) 2019 Jon Stovell
+ * Copyright (c) 2023 Jon Stovell
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,268 +27,81 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- ******************************************************************************/
+ */
+
+namespace Sesquipedalian;
 
 /**
- * The code inside this IF block will only be executed when this file is run
- * directly from the command line. If this file is included by another file,
- * the code in this block will be ignored.
+ * Generates secure, random, user-friendly passphrases.
+ *
+ * Passphrases generated using this class are easy for humans to remember, but
+ * very difficult for computers to crack. The method is based on Diceware
+ * passphrases, but uses improved wordlists from the EFF and allows
+ * customizations in case one needs to obey less enlightened password
+ * requirements.
+ *
+ * See:
+ * http://world.std.com/~reinhold/diceware.html
+ * https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
  */
-if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($argv[0])) {
+class GenPass
+{
+	/**
+	 * @var int
+	 *
+	 * The number of words to include in the generated passphrase.
+	 */
+	public int $num_words = 5;
 
-	// Defaults
-	$use_caps = false;
-	$use_punct = false;
-	$use_number = false;
-	$num_words = 5;
-	$how_many = 1;
-	$glue = ' ';
-	$help = false;
+	/**
+	 * @var bool
+	 *
+	 * Whether to include a number in the generated passphrase.
+	 */
+	public bool $use_number = false;
 
-	foreach (getopt('hncpw:m:dut:') as $optkey => $optval) {
-		switch ($optkey) {
-			case 'h':
-				$help = true;
-				break;
+	/**
+	 * @var bool
+	 *
+	 * Whether to include punctuation marks in the generated passphrase.
+	 */
+	public bool $use_punct = false;
 
-			case 'n':
-				$use_number = true;
-				break;
+	/**
+	 * @var bool
+	 *
+	 * Whether to use capital letters in the generated passphrase.
+	 */
+	public bool $use_caps = false;
 
-			case 'c':
-				$use_caps = true;
-				break;
+	/**
+	 * @var string
+	 *
+	 * String used to implode the words into a passphrase.
+	 */
+	public string $glue = ' ';
 
-			case 'p':
-				$use_punct = true;
-				break;
+	/**
+	 * @var array
+	 *
+	 * Punctation marks we can add to words in the middle of the passphrase.
+	 */
+	public array $inner_punctuation = ['.', '?', ','];
 
-			case 'w':
-				$num_words = (int) $optval >= 3 ? (int) $optval : 5;
-				break;
+	/**
+	 * @var array
+	 *
+	 * Punctation marks we can add to words at the end of the passphrase.
+	 */
+	public array $final_punctuation = ['.', '?', '!'];
 
-			case 'm':
-				$how_many = max(1, (int) $optval);
-				break;
-
-			case 'd':
-				$glue = '-';
-				break;
-
-			case 'u':
-				$glue = '_';
-				break;
-
-			case 't':
-				$glue = (string) $optval;
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	if ($help)
-	{
-		fwrite(STDERR, implode(PHP_EOL, array(
-			'Usage: php ' . basename($argv[0]) . ' [-h] [-c] [-n] [-p] [-w <num>] [-m <num>]',
-			'                          [-d|u] [-t <char>]',
-			'',
-			'Generates a secure, random, user friendly passphrase',
-			'',
-			'Passphrases generated using this script are easy for humans to remember, but',
-			'very difficult for computers to crack. The method is based on Diceware',
-			'passphrases, but uses improved wordlists from the EFF and allows customizations',
-			'(in case one needs to obey less enlightened password requirements).',
-			'',
-			'See:',
-			'http://world.std.com/~reinhold/diceware.html',
-			'https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases',
-			'',
-			'OPTIONS:',
-			'   -h           Show this help message',
-			'   -n           Use numbers',
-			'   -c           Use capital letters',
-			'   -p           Use punctuation marks',
-			'   -w <number>  Number of words in the passphrase (range: 3-10, default: 5)',
-			'   -m <number>  How many passphrases to generate (default: 1)',
-			'   -d           Use dashes instead of spaces between words',
-			'   -u           Use underscores instead of spaces between words',
-			'   -t <string>  Custom text to use between words (default: " ")',
-			'',
-			'The -d, -u, and -t options are mutually exclusive. The script will use whichever',
-			'one is given last.',
-			'',
-		)));
-
-		exit;
-	}
-
-	if ($num_words < 3 || $num_words > 10) {
-		fwrite(STDERR, implode(PHP_EOL, array(
-			'Option -w requires an integer argument in the range 3 to 10',
-			'Using default value of 5',
-			'',
-		)));
-		$num_words = 5;
-	}
-
-	if ($how_many < 1) {
-		fwrite(STDERR, implode(PHP_EOL, array(
-			'Option -m requires an integer argument (minimum 1)',
-			'Using default value of 1',
-			'',
-		)));
-		$how_many = 1;
-	}
-
-	for ($i=0; $i < $how_many; $i++) {
-		echo generatePassphrase($num_words, $use_number, $use_punct, $use_caps, $glue), PHP_EOL;
-	}
-}
-
-/**
- * Generates a Diceware-style passphrase.
- *
- * The passphrase can be customized to meet various common password requirements if necessary.
- *
- * @param int $num_words The number of words to include in the generated passphrase. Min 3, max 10. Default 5.
- * @param bool $use_number If true, one word will be replaced with a random number (1-1000). Default false.
- * @param bool $use_punct If true, the passphrase will include punctuation marks. Default false.
- * @param bool $use_caps If true, at least one word will be capitalized. Default false.
- * @param string $glue The string used to implode the words into a passphrase. Default ' '.
- * @return string The generated passphrase.
- */
-function generatePassphrase($num_words = 5, $use_number = false, $use_punct = false, $use_caps = false, $glue = ' ') {
-
-	// What random number generator shall we use?
-	// Note: mt_rand is inadequate for cryptography purposes
-	if (function_exists('random_int')) {
-		$random_int =  'random_int';
-	}
-	elseif (function_exists('openssl_random_pseudo_bytes') || function_exists('mcrypt_create_iv')) {
-		$random_int = function ($min, $max) {
-
-			static $mb, $mcrypt;
-			if (is_null($mb))
-				$mb = function_exists('mb_strlen');
-			if (is_null($mcrypt))
-				$mcrypt = function_exists('mcrypt_create_iv');
-
-			// This function returns the range boundary values only 50% as often
-			// as the other values in the range, so we pad the range and discard
-			// any values that fall on the new boundaries.
-			++$max; --$min;
-
-			$diff = $max - $min;
-			do {
-				$bytes = $mcrypt ? mcrypt_create_iv(4, MCRYPT_DEV_URANDOM) : openssl_random_pseudo_bytes(4);
-
-				// The mb_strlen check protects against mbstring.func_overload
-				if ($bytes === false || ($mb && mb_strlen($bytes, '8bit') != 4 || strlen($bytes) != 4)) {
-					fwrite(STDERR, "Unable to get 4 bytes".PHP_EOL);
-					die(1);
-				}
-
-				$ary = unpack("Nint", $bytes);
-				$val = $ary['int'] & 0x7FFFFFFF;   // 32-bit safe
-				$fp = $val / 2147483647.0; // convert to [0,1]
-				$int = (int) round($fp * $diff) + $min;
-			} while ($int === $max || $int === $min);
-
-			return $int;
-		};
-	}
-	else {
-		fwrite(STDERR, "No adequate random number generator found.".PHP_EOL."Please upgrade PHP or recompile it with OpenSSL support.".PHP_EOL);
-		die(1);
-	}
-
-	// Sanitize
-	$num_words = (int) $num_words < 3 ? 5 : (int) $num_words;
-	$use_punct = (bool) $use_punct;
-	$use_number = (bool) $use_number;
-	$use_caps = (bool) $use_caps;
-	$glue = (string) $glue;
-
-	// Sanity check
-	$num_words = min(10, $num_words);
-
-	// Retrieve our lovely list of words
-	$wordlist = getWordlist();
-
-	// Some punctation marks we might add to a word
-	$inner_punctuation = array('.', '?', ',');
-	$final_punctuation = array('.', '?', '!');
-
-	// Where should be the number be inserted, if anywhere?
-	if ($use_number) {
-		$number_position = mt_rand(0, $num_words);
-		$num_words++;
-	}
-
-	// Let's do this thing...
-	$passphrase = array();
-	$i = 0;
-	$punct_position = -1;
-	$cap_next = true;
-	while ($i < $num_words) {
-		// Do we want a word or a number?
-		if ($use_number && $i === $number_position) {
-			// A number is just window dressing, so make it friendly:
-			// 50% chance of one digit, 50% chance of two digits.
-			$word = (mt_rand(0, 1) ? mt_rand(1, 9) : mt_rand(10, 99));
-			$cap_next = false;
-		}
-		else {
-			$word = $wordlist[$random_int(0, count($wordlist) - 1)];
-
-			// Capitalize the first letter of this word?
-			if ($use_caps && $cap_next) {
-				$word = ucfirst($word);
-				$cap_next = false;
-			}
-		}
-
-		// Maybe append a punctuation mark?
-		if ($use_punct) {
-			$punct = '';
-			if ($i === $num_words - 1) {
-				$punct = $final_punctuation[mt_rand(0, count($final_punctuation) - 1)];
-			}
-			elseif ($i > $punct_position + mt_rand(1, 2)) {
-				$punct = $inner_punctuation[mt_rand(0, count($inner_punctuation) - 1)];
-			}
-			if (!empty($punct)) {
-				$word .= $punct;
-				$punct_position = $i;
-				$cap_next = $punct !== ',';
-			}
-		}
-
-		$passphrase[] = $word;
-
-		++$i;
-	}
-
-	$passphrase = implode($glue, $passphrase);
-
-	// It's annoying to have an underscore immediately after a punctuation mark
-	if ($use_punct && $glue !== ' ' && strlen($glue) === 1 && preg_match('/\pP/', $glue))
-		$passphrase = preg_replace('/(?<=[' . implode('', $punctuation) . '])' . $glue . '/', '', $passphrase);
-
-	return $passphrase;
-}
-
-/**
- * Returns an array containing the EFF's long wordlist for random passphrases
- *
- * See: https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
- *
- * @return array Potential words to use in a passphrase
- */
-function getWordlist() {
-	return array(
+	/**
+	 * @var array
+	 *
+	 * The EFF's long wordlist for random passphrases.
+	 * https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
+	 */
+	public array $wordlist = [
 		'abacus', 'abdomen', 'abdominal', 'abide', 'abiding', 'ability',
 		'ablaze', 'able', 'abnormal', 'abrasion', 'abrasive', 'abreast',
 		'abridge', 'abroad', 'abruptly', 'absence', 'absentee', 'absently',
@@ -1549,6 +1356,255 @@ function getWordlist() {
 		'yo-yo', 'yodel', 'yoga', 'yogurt', 'yonder', 'yoyo', 'yummy', 'zap',
 		'zealous', 'zebra', 'zen', 'zeppelin', 'zero', 'zestfully', 'zesty',
 		'zigzagged', 'zipfile', 'zipping', 'zippy', 'zips', 'zit', 'zodiac',
-		'zombie', 'zone', 'zoning', 'zookeeper', 'zoologist', 'zoology', 'zoom'
-	);
+		'zombie', 'zone', 'zoning', 'zookeeper', 'zoologist', 'zoology', 'zoom',
+	];
+
+	/**
+	 * @var int
+	 *
+	 * Where to insert the number, if $this->use_number is true.
+	 */
+	public int $number_position;
+
+	/**
+	 * Builds the passphrase generator.
+	 *
+	 * The generator can be customized to meet various common password
+	 * requirements if necessary.
+	 *
+	 * @param int $num_words The number of words to include in the passphrase.
+	 *    Min: 3. Max: 10. Default: 5.
+	 * @param bool $use_number If true, the passphrase will include a random
+	 *    number (1-99). Default: false.
+	 * @param bool $use_punct If true, the passphrase will include punctuation
+	 *    marks. Default: false.
+	 * @param bool $use_caps If true, at least one word will be capitalized.
+	 *    Default: false.
+	 * @param string $glue String used to implode the words into a passphrase.
+	 *    Default: ' '.
+	 */
+	public function __construct(
+		int $num_words = 5,
+		bool $use_number = false,
+		bool $use_punct = false,
+		bool $use_caps = false,
+		string $glue = ' ',
+	) {
+		$this->num_words = min(max($num_words, 3), 10);
+		$this->use_punct = $use_punct;
+		$this->use_number = $use_number;
+		$this->use_caps = $use_caps;
+		$this->glue = $glue;
+
+		// Where should be the number be inserted, if anywhere?
+		if ($this->use_number) {
+			$this->number_position = random_int(0, $this->num_words);
+			$this->num_words++;
+		}
+	}
+
+	/**
+	 * Generates a Diceware-style passphrase.
+	 *
+	 * @return string The passphrase.
+	 */
+	public function generate(): string
+	{
+		// Let's do this thing...
+		$passphrase = [];
+		$i = 0;
+		$punct_position = -1;
+		$cap_next = true;
+		$list_count = count($this->wordlist);
+
+		while ($i < $this->num_words) {
+			// Do we want a word or a number?
+			if ($this->use_number && $i === $this->number_position) {
+				// A number is just window dressing, so make it friendly:
+				// 50% chance of one digit, 50% chance of two digits.
+				$word = (random_int(0, 1) ? random_int(1, 9) : random_int(10, 99));
+				$cap_next = false;
+			} else {
+				$word = $this->wordlist[random_int(0, $list_count - 1)];
+
+				// Capitalize the first letter of this word?
+				if ($this->use_caps && $cap_next) {
+					$word = ucfirst($word);
+					$cap_next = false;
+				}
+			}
+
+			// Maybe append a punctuation mark?
+			if ($this->use_punct) {
+				$punct = '';
+
+				if ($i === $this->num_words - 1) {
+					$punct = $this->final_punctuation[random_int(0, count($this->final_punctuation) - 1)];
+				} elseif ($i > $punct_position + random_int(1, 2)) {
+					$punct = $this->inner_punctuation[random_int(0, count($this->inner_punctuation) - 1)];
+				}
+
+				if (!empty($punct)) {
+					$word .= $punct;
+					$punct_position = $i;
+					$cap_next = $punct !== ',';
+				}
+			}
+
+			$passphrase[] = $word;
+
+			++$i;
+		}
+
+		$passphrase = implode($this->glue, $passphrase);
+
+		// It's annoying to have an underscore immediately after a punctuation mark
+		if (
+			$this->use_punct
+			&& $this->glue !== ' '
+			&& strlen($this->glue) === 1
+			&& preg_match('/\pP/', $this->glue)
+		) {
+			$passphrase = preg_replace('/(?<=[' . implode('', $this->inner_punctuation) . '])' . $glue . '/', '', $passphrase);
+		}
+
+		return $passphrase;
+	}
+
+	/**
+	 * Generates a batch of Diceware-style passphrases.
+	 *
+	 * @param $num How many passphrases to generate. Default: 1.
+	 * @return arra The generated passphrases.
+	 */
+	public function generateBatch(int $num = 1): array
+	{
+		$passphrases = [];
+
+		for ($i = 0; $i < $num; $i++) {
+			$passphrases[] = $this->generate();
+		}
+
+		return $passphrases;
+	}
+
+}
+
+/*
+ * The code inside this IF block will only be executed when this file is run
+ * directly from the command line. If this file is included by another file,
+ * the code in this block will be ignored.
+ */
+if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($argv[0])) {
+
+	// Defaults
+	$use_caps = false;
+	$use_punct = false;
+	$use_number = false;
+	$num_words = 5;
+	$how_many = 1;
+	$glue = ' ';
+	$help = false;
+
+	foreach (getopt('hncpw:m:dut:') as $optkey => $optval) {
+		switch ($optkey) {
+			case 'h':
+				$help = true;
+				break;
+
+			case 'n':
+				$use_number = true;
+				break;
+
+			case 'c':
+				$use_caps = true;
+				break;
+
+			case 'p':
+				$use_punct = true;
+				break;
+
+			case 'w':
+				$num_words = (int) $optval >= 3 ? (int) $optval : 5;
+				break;
+
+			case 'm':
+				$how_many = max(1, (int) $optval);
+				break;
+
+			case 'd':
+				$glue = '-';
+				break;
+
+			case 'u':
+				$glue = '_';
+				break;
+
+			case 't':
+				$glue = (string) $optval;
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	if ($help) {
+		fwrite(STDERR, implode(PHP_EOL, [
+			'Usage: php ' . basename($argv[0]) . ' [-h] [-c] [-n] [-p] [-w <num>] [-m <num>]',
+			'                          [-d|u] [-t <char>]',
+			'',
+			'Generates secure, random, user-friendly passphrases.',
+			'',
+			'Passphrases generated using this script are easy for humans to remember, but',
+			'very difficult for computers to crack. The method is based on Diceware',
+			'passphrases, but uses improved wordlists from the EFF and allows customizations',
+			'in case one needs to obey less enlightened password requirements.',
+			'',
+			'See:',
+			'http://world.std.com/~reinhold/diceware.html',
+			'https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases',
+			'',
+			'OPTIONS:',
+			'   -h           Show this help message',
+			'   -n           Use numbers',
+			'   -c           Use capital letters',
+			'   -p           Use punctuation marks',
+			'   -w <number>  Number of words in the passphrase (range: 3-10, default: 5)',
+			'   -m <number>  How many passphrases to generate (default: 1)',
+			'   -d           Use dashes instead of spaces between words',
+			'   -u           Use underscores instead of spaces between words',
+			'   -t <string>  Custom text to use between words (default: " ")',
+			'',
+			'The -d, -u, and -t options are mutually exclusive. The script will use whichever',
+			'one is given last.',
+			'',
+		]));
+
+		exit;
+	}
+
+	if ($num_words < 3 || $num_words > 10) {
+		fwrite(STDERR, implode(PHP_EOL, [
+			'Option -w requires an integer argument in the range 3 to 10',
+			'Using default value of 5',
+			'',
+		]));
+		$num_words = 5;
+	}
+
+	if ($how_many < 1) {
+		fwrite(STDERR, implode(PHP_EOL, [
+			'Option -m requires an integer argument (minimum 1)',
+			'Using default value of 1',
+			'',
+		]));
+		$how_many = 1;
+	}
+
+	$genpass = new GenPass($num_words, $use_number, $use_punct, $use_caps, $glue);
+
+	foreach ($genpass->generateBatch($how_many) as $passphrase) {
+		echo $passphrase, PHP_EOL;
+	}
 }
