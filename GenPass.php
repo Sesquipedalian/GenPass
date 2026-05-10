@@ -3,12 +3,12 @@
 /**
  * Generates secure, random, user friendly passphrases.
  *
- * @version 1.1.0
+ * @version 1.2.0
  * @author Jon Stovell http://jon.stovell.info
- * @copyright 2023 Jon Stovell
+ * @copyright 2026 Jon Stovell
  * @license MIT
  *
- * Copyright (c) 2023 Jon Stovell
+ * Copyright (c) 2026 Jon Stovell
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1360,13 +1360,6 @@ class GenPass
 	];
 
 	/**
-	 * @var int
-	 *
-	 * Where to insert the number, if $this->use_number is true.
-	 */
-	public int $number_position;
-
-	/**
 	 * Builds the passphrase generator.
 	 *
 	 * The generator can be customized to meet various common password
@@ -1396,9 +1389,7 @@ class GenPass
 		$this->use_caps = $use_caps;
 		$this->glue = $glue;
 
-		// Where should be the number be inserted, if anywhere?
 		if ($this->use_number) {
-			$this->number_position = random_int(0, $this->num_words);
 			$this->num_words++;
 		}
 	}
@@ -1417,9 +1408,14 @@ class GenPass
 		$cap_next = true;
 		$list_count = count($this->wordlist);
 
+		// Where should be the number be inserted, if anywhere?
+		if ($this->use_number) {
+			$number_position = random_int(0, $this->num_words - 1);
+		}
+
 		while ($i < $this->num_words) {
 			// Do we want a word or a number?
-			if ($this->use_number && $i === $this->number_position) {
+			if ($this->use_number && $i === $number_position) {
 				// A number is just window dressing, so make it friendly:
 				// 50% chance of one digit, 50% chance of two digits.
 				$word = (random_int(0, 1) ? random_int(1, 9) : random_int(10, 99));
@@ -1486,125 +1482,5 @@ class GenPass
 		}
 
 		return $passphrases;
-	}
-
-}
-
-/*
- * The code inside this IF block will only be executed when this file is run
- * directly from the command line. If this file is included by another file,
- * the code in this block will be ignored.
- */
-if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($argv[0])) {
-
-	// Defaults
-	$use_caps = false;
-	$use_punct = false;
-	$use_number = false;
-	$num_words = 5;
-	$how_many = 1;
-	$glue = ' ';
-	$help = false;
-
-	foreach (getopt('hncpw:m:dut:') as $optkey => $optval) {
-		switch ($optkey) {
-			case 'h':
-				$help = true;
-				break;
-
-			case 'n':
-				$use_number = true;
-				break;
-
-			case 'c':
-				$use_caps = true;
-				break;
-
-			case 'p':
-				$use_punct = true;
-				break;
-
-			case 'w':
-				$num_words = (int) $optval >= 3 ? (int) $optval : 5;
-				break;
-
-			case 'm':
-				$how_many = max(1, (int) $optval);
-				break;
-
-			case 'd':
-				$glue = '-';
-				break;
-
-			case 'u':
-				$glue = '_';
-				break;
-
-			case 't':
-				$glue = (string) $optval;
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	if ($help) {
-		fwrite(STDERR, implode(PHP_EOL, [
-			'Usage: php ' . basename($argv[0]) . ' [-h] [-c] [-n] [-p] [-w <num>] [-m <num>]',
-			'                          [-d|u] [-t <char>]',
-			'',
-			'Generates secure, random, user-friendly passphrases.',
-			'',
-			'Passphrases generated using this script are easy for humans to remember, but',
-			'very difficult for computers to crack. The method is based on Diceware',
-			'passphrases, but uses improved wordlists from the EFF and allows customizations',
-			'in case one needs to obey less enlightened password requirements.',
-			'',
-			'See:',
-			'http://world.std.com/~reinhold/diceware.html',
-			'https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases',
-			'',
-			'OPTIONS:',
-			'   -h           Show this help message',
-			'   -n           Use numbers',
-			'   -c           Use capital letters',
-			'   -p           Use punctuation marks',
-			'   -w <number>  Number of words in the passphrase (range: 3-10, default: 5)',
-			'   -m <number>  How many passphrases to generate (default: 1)',
-			'   -d           Use dashes instead of spaces between words',
-			'   -u           Use underscores instead of spaces between words',
-			'   -t <string>  Custom text to use between words (default: " ")',
-			'',
-			'The -d, -u, and -t options are mutually exclusive. The script will use whichever',
-			'one is given last.',
-			'',
-		]));
-
-		exit;
-	}
-
-	if ($num_words < 3 || $num_words > 10) {
-		fwrite(STDERR, implode(PHP_EOL, [
-			'Option -w requires an integer argument in the range 3 to 10',
-			'Using default value of 5',
-			'',
-		]));
-		$num_words = 5;
-	}
-
-	if ($how_many < 1) {
-		fwrite(STDERR, implode(PHP_EOL, [
-			'Option -m requires an integer argument (minimum 1)',
-			'Using default value of 1',
-			'',
-		]));
-		$how_many = 1;
-	}
-
-	$genpass = new GenPass($num_words, $use_number, $use_punct, $use_caps, $glue);
-
-	foreach ($genpass->generateBatch($how_many) as $passphrase) {
-		echo $passphrase, PHP_EOL;
 	}
 }

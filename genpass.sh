@@ -15,7 +15,7 @@
 # http://world.std.com/~reinhold/diceware.html
 # https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
 #
-# Copyright (c) 2023 Jon Stovell
+# Copyright (c) 2026 Jon Stovell
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -114,6 +114,13 @@ if [[ ! -e "$(which jot)" && ! -e "$(which shuf)" ]]; then
 fi
 
 main() {
+	# If possible, use the PHP version for better performance.
+	if [[ -n "$(which php)" && -f 'GenPass.php' ]]; then
+		php -r "include 'GenPass.php'; \$genpass = new Sesquipedalian\GenPass($num_words, $use_number, $use_punct, $use_caps, $glue); foreach (\$genpass->generateBatch($how_many) as \$passphrase) { echo \$passphrase, PHP_EOL; }"
+
+		exit
+	fi;
+
 	getDictionary
 
 	# xargs tidies whitespace so cut doesn't get confused

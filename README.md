@@ -2,7 +2,7 @@
 
 Generates secure, random, user-friendly passphrases.
 
-This repository contains two versions of GenPass, one in Bash, and one in PHP.
+This repository contains both a Bash implementation and a PHP implementation.
 
 Passphrases generated using GenPass are easy for humans to remember, but
 very difficult for computers to crack. The method is based on Diceware
@@ -58,7 +58,7 @@ universe_reappear_76_bash_entree_trapping
 
 ## PHP
 
-To use GenPass in your PHP project, simply include GenPass.php and then use it
+To use GenPass in your PHP project, simply include or autoload GenPass.php and then use it
 like so:
 
 ```php
@@ -67,9 +67,6 @@ $genpass = new Sesquipedalian\GenPass();
 $one_passphrase  = $genpass->generate();
 $ten_passphrases = $genpass->generateBatch(10);
 ```
-
-GenPass.php contains code to enable command line usage (see below). If you are
-using GenPass in your PHP project, you will probably want to remove that code.
 
 ### Parameters for Sesquipedalian\GenPass::__construct()
 ```php
@@ -100,17 +97,3 @@ public function __construct(
 	...
 }
 ```
-
-
-### Command line usage
-
-The GenPass.php file can also be used from the command line like so:
-
-```
-$ php GenPass.php
-```
-
-The same command line options are available for the PHP version as for the Bash
-version, and have the same results. The only difference between running
-`./genpass.sh` vs. `php GenPass.php` on the command line is that the PHP version
-is much, much faster.
